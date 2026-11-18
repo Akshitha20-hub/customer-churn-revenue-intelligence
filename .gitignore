@@ -14,37 +14,15 @@ venv/
 env/
 .venv/
 
-# Data files (large)
-data/raw/*.csv
-data/processed/*.csv
-
-# Models
-models/*.pkl
-models/*.joblib
-
-# Database
-*.db
-*.sqlite
-
-# Exports
-exports/*.csv
-
-# IDE
+# IDE & OS
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Jupyter
-.ipynb_checkpoints/
-
-# OS
 .DS_Store
 Thumbs.db
+.ipynb_checkpoints/
 
-# Streamlit
-.streamlit/
-
-# Environment
+# Secrets & Environment
 .env
 *.env

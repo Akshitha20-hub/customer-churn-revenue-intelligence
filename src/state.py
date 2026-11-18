@@ -36,8 +36,11 @@ def load_cached_data():
 def load_cached_model(_df_eng):
     """Load or train model once and cache across app sessions."""
     if model_is_trained():
-        pipeline, metadata = load_model()
-        all_metrics = metadata.get("all_metrics", [])
+        try:
+            pipeline, metadata = load_model()
+            all_metrics = metadata.get("all_metrics", [])
+        except Exception:
+            all_metrics, pipeline, metadata = train_models(_df_eng)
     else:
         all_metrics, pipeline, metadata = train_models(_df_eng)
     return all_metrics, pipeline, metadata

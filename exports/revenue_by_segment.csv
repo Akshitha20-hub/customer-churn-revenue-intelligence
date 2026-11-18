@@ -1,0 +1,4 @@
+churn_risk_segment,total_customers,churned,total_monthly_revenue,avg_monthly_charges,total_clv,churn_rate_pct
+High Risk,1994,1024,116086.5,58.22,551048.75,51.35
+Low Risk,1695,48,103005.85,60.77,6282957.65,2.83
+Medium Risk,3354,797,237024.25,70.67,9221085.05,23.76
