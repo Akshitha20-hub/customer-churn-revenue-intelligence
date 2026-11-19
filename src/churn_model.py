@@ -227,9 +227,20 @@ def load_model() -> tuple:
     if not os.path.exists(BEST_MODEL_PATH):
         logger.warning("No trained model found. Please run train_models() first.")
         return None, None
-    pipeline = joblib.load(BEST_MODEL_PATH)
-    metadata = joblib.load(METADATA_PATH) if os.path.exists(METADATA_PATH) else {}
-    return pipeline, metadata
+    try:
+        pipeline = joblib.load(BEST_MODEL_PATH)
+        metadata = joblib.load(METADATA_PATH) if os.path.exists(METADATA_PATH) else {}
+
+        # Patch cross-version scikit-learn compatibility (e.g. multi_class in LogisticRegression)
+        if pipeline is not None and hasattr(pipeline, "named_steps"):
+            clf = pipeline.named_steps.get("classifier")
+            if clf is not None and not hasattr(clf, "multi_class"):
+                clf.multi_class = "auto"
+
+        return pipeline, metadata
+    except Exception as e:
+        logger.warning(f"Error loading model from disk: {e}")
+        return None, None
 
 
 def model_is_trained() -> bool:

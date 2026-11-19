@@ -23,6 +23,10 @@ from src.recommendations import apply_recommendations
 from database.database import init_database, ingest_customers, ingest_predictions
 
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 @st.cache_data(show_spinner=False)
 def load_cached_data():
     """Load, preprocess, and engineer features with Streamlit caching."""
@@ -35,23 +39,49 @@ def load_cached_data():
 @st.cache_resource(show_spinner=False)
 def load_cached_model(_df_eng):
     """Load or train model once and cache across app sessions."""
+    pipeline = None
+    metadata = {}
+    all_metrics = []
+
     if model_is_trained():
         try:
             pipeline, metadata = load_model()
-            all_metrics = metadata.get("all_metrics", [])
-        except Exception:
-            all_metrics, pipeline, metadata = train_models(_df_eng)
-    else:
+            if pipeline is not None:
+                # Rigorously verify that the loaded model can actually predict on this environment
+                test_sample = _df_eng.head(2)
+                num_feats = ["tenure", "monthly_charges", "total_charges", "num_services", "senior_citizen"]
+                cat_feats = [
+                    "gender", "partner", "dependents", "phone_service", "multiple_lines",
+                    "internet_service", "online_security", "online_backup", "device_protection",
+                    "tech_support", "streaming_tv", "streaming_movies",
+                    "contract", "paperless_billing", "payment_method",
+                ]
+                pipeline.predict_proba(test_sample[num_feats + cat_feats])
+                all_metrics = metadata.get("all_metrics", [])
+            else:
+                pipeline = None
+        except Exception as e:
+            logger.warning(f"Cached model incompatible with runtime: {e}. Auto-training fresh model...")
+            pipeline = None
+
+    if pipeline is None:
         all_metrics, pipeline, metadata = train_models(_df_eng)
+
     return all_metrics, pipeline, metadata
 
 
 @st.cache_data(show_spinner=False)
 def load_cached_predictions(_df_eng):
     """Generate predictions and attach rule-based retention strategies."""
-    df_pred = get_predictions_for_all(_df_eng)
-    df_pred_full = apply_recommendations(df_pred)
-    return df_pred_full
+    try:
+        df_pred = get_predictions_for_all(_df_eng)
+        df_pred_full = apply_recommendations(df_pred)
+        return df_pred_full
+    except Exception as e:
+        logger.warning(f"Prediction generation error: {e}. Retraining model...")
+        train_models(_df_eng)
+        df_pred = get_predictions_for_all(_df_eng)
+        return apply_recommendations(df_pred)
 
 
 def ensure_state_initialized():
